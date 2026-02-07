@@ -29,16 +29,33 @@ The project does **not** study pricing, routing, or supply-chain network design.
 
 ---
 
-## 3. Key Modeling Decisions (Locked)
+## 3. Research Contribution
 
-### 3.1 Decision-Maker and Setting
+This project contributes a **practical demonstration** of how classical inventory theory can be enhanced through data-driven uncertainty quantification.
+
+The central insight is:
+
+> **Learning demand volatility from historical data and incorporating it into safety stock calculations yields measurable improvements in fill rate and cost efficiency, without requiring complex optimization or machine learning.**
+
+This contribution is pedagogical and methodological:
+- It shows that **modeling uncertainty well** is often more valuable than adopting sophisticated algorithms
+- It provides a reproducible template for simulation-based policy evaluation
+- It emphasizes **decision quality under uncertainty** rather than forecasting accuracy or algorithmic novelty
+
+The project is suitable for classroom instruction in Operations Management, demonstrating how foundational concepts (safety stock, reorder points, service levels) translate into actionable, data-informed decisions.
+
+---
+
+## 4. Key Modeling Decisions (Locked)
+
+### 4.1 Decision-Maker and Setting
 - Single retailer
 - Multiple products (SKUs or product categories)
 - Centralized inventory control
 - Finite time horizon
 - Lost sales (no backorders)
 
-### 3.2 Demand Modeling Philosophy
+### 4.2 Demand Modeling Philosophy
 Historical retail data represents **one realized demand path** and cannot by itself characterize uncertainty.
 
 Therefore:
@@ -62,7 +79,7 @@ This explicitly separates:
 
 ---
 
-## 4. Forecasting Layer (Intentionally Simple)
+## 5. Forecasting Layer (Intentionally Simple)
 
 Forecasting accuracy is **not** the main objective.
 
@@ -74,7 +91,7 @@ This allows the project to isolate **policy robustness** rather than optimize pr
 
 ---
 
-## 5. Inventory Policies Considered
+## 6. Inventory Policies Considered
 
 Only **interpretable, classical policies** are used.
 
@@ -102,7 +119,7 @@ This approach constitutes a **data-driven heuristic optimization**, not reinforc
 
 ---
 
-## 6. Why Reinforcement Learning Is Not Used
+## 7. Why Reinforcement Learning Is Not Used
 
 Reinforcement Learning (RL) is intentionally excluded for the following reasons:
 
@@ -113,14 +130,14 @@ Reinforcement Learning (RL) is intentionally excluded for the following reasons:
 
 ---
 
-## 7. Evaluation Methodology
+## 8. Evaluation Methodology
 
-### 7.1 Simulation
+### 8.1 Simulation
 - Policies are evaluated using **Monte Carlo simulation**
 - Each policy is tested across many stochastic demand realizations
 - Performance is summarized using mean values and confidence intervals
 
-### 7.2 Metrics (Efficiency Only)
+### 8.2 Metrics (Efficiency Only)
 The project focuses exclusively on efficiency metrics:
 
 - **Fill Rate**
@@ -145,7 +162,60 @@ The project focuses exclusively on efficiency metrics:
 
 ---
 
-## 8. Dataset Usage
+## 9. Experimental Design
+
+The simulation study is structured to isolate the effect of **uncertainty-aware policy tuning** on inventory performance.
+
+### Policies Compared
+| Policy | Description |
+|--------|-------------|
+| **Static (r, Q)** | Fixed reorder point and order quantity based on average demand |
+| **Historical-mean** | Order quantity equals recent average demand; no safety stock adjustment |
+| **Tuned (r, Q)** | Reorder point and safety stock dynamically adjusted using learned demand volatility |
+
+### What Is Held Fixed
+- Product assortment and cost parameters (holding cost, lead time)
+- Forecast method (simple baseline)
+- Simulation horizon and number of replications
+- Lost-sales assumption (no backorders)
+
+### What Varies
+- **Demand volatility**: Simulations are run under low, medium, and high demand uncertainty scenarios
+- This tests whether the tuned policy's advantage persists or grows as uncertainty increases
+
+### Why Monte Carlo Simulation
+Historical data represents only **one realized demand path** and cannot characterize the distribution of outcomes. Monte Carlo simulation:
+- Generates many plausible demand scenarios from calibrated distributions
+- Enables estimation of expected performance and confidence intervals
+- Allows fair comparison of policies under identical stochastic conditions
+
+This approach is standard in Operations Management research for evaluating inventory policies under uncertainty.
+
+---
+
+## 10. How to Interpret the Results
+
+The output of this project is a **comparative policy analysis**, not a prediction or optimization.
+
+### For Instructors
+- Focus on **relative performance**: Does the tuned policy consistently outperform baselines across volatility levels?
+- Examine **confidence intervals**: Overlapping intervals suggest the difference may not be practically significant
+- Use the results to illustrate the **value of uncertainty modeling** in inventory decisions
+
+### For Managers
+- **Fill rate** indicates customer service level — higher is better
+- **Holding cost** reflects capital tied up in inventory — lower is better
+- **Stockout rate** measures lost sales risk — lower is better
+- A policy that achieves higher fill rate with comparable or lower holding cost is operationally superior
+
+### Robustness and Interpretability
+- Results are averaged over many simulation runs to reduce noise
+- Policies are classical and transparent — the decision rules can be explained and audited
+- Sensitivity analysis shows whether conclusions hold under different demand volatility assumptions
+
+---
+
+## 11. Dataset Usage
 
 The dataset is used **only for calibration**, not direct evaluation.
 
@@ -158,7 +228,7 @@ All policy comparisons are performed on **simulated demand paths**, not historic
 
 ---
 
-## 9. Project Structure
+## 12. Project Structure
 
 ```
 ├── data/                   # Raw and processed datasets
@@ -178,7 +248,7 @@ All policy comparisons are performed on **simulated demand paths**, not historic
 
 ---
 
-## 10. Expected Outputs
+## 13. Expected Outputs
 
 - Clear comparison of inventory policies under demand uncertainty
 - Quantified performance improvements from learning demand volatility
@@ -187,7 +257,7 @@ All policy comparisons are performed on **simulated demand paths**, not historic
 
 ---
 
-## 11. Guiding Principle
+## 14. Guiding Principle
 
 > **Better decisions under uncertainty do not require more complex algorithms — they require better modeling of uncertainty.**
 
