@@ -160,19 +160,20 @@ All policy comparisons are performed on **simulated demand paths**, not historic
 
 ## 9. Project Structure
 
-inventory-uncertainty-pbl/
-├── data/ # Raw and processed datasets
-├── src/ # Core modeling logic
-│ ├── preprocessing.py
-│ ├── forecasting.py
-│ ├── demand_uncertainty.py
-│ ├── policies.py
-│ ├── simulation.py
-│ └── metrics.py
-├── experiments/ # Experiment scripts and parameter sweeps
-├── notebooks/ # Analysis and visualization notebooks
-├── figures/ # Generated plots for reporting
+```
+├── data/                   # Raw and processed datasets
+├── src/                    # Core modeling logic
+│   ├── preprocessing.py
+│   ├── forecasting.py
+│   ├── demand_uncertainty.py
+│   ├── policies.py
+│   ├── simulation.py
+│   └── metrics.py
+├── experiments/            # Experiment scripts and parameter sweeps
+├── notebooks/              # Analysis and visualization notebooks
+├── figures/                # Generated plots for reporting
 └── README.md
+```
 
 
 ---
