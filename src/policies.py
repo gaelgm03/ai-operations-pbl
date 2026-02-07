@@ -18,20 +18,37 @@ import numpy as np
 def calculate_reorder_point(
     mean_demand: float,
     lead_time: float,
-    demand_std: float,
-    service_level: float = 0.95
+    safety_stock: float
 ) -> float:
-    """Calculate reorder point with safety stock."""
-    pass
+    """Calculate reorder point for (r, Q) policy.
+
+    Args:
+        mean_demand: Average demand per period.
+        lead_time: Lead time in periods.
+        safety_stock: Pre-computed safety stock.
+
+    Returns:
+        Reorder point r = mean_demand * lead_time + safety_stock.
+    """
+    return mean_demand * lead_time + safety_stock
 
 
 def calculate_safety_stock(
     demand_std: float,
     lead_time: float,
-    service_level: float = 0.95
+    z: float
 ) -> float:
-    """Calculate safety stock for a given service level."""
-    pass
+    """Calculate safety stock for (r, Q) policy.
+
+    Args:
+        demand_std: Standard deviation of demand per period.
+        lead_time: Lead time in periods.
+        z: Safety factor (z-score for desired service level).
+
+    Returns:
+        Safety stock SS = z * demand_std * sqrt(lead_time).
+    """
+    return z * demand_std * np.sqrt(lead_time)
 
 
 def calculate_eoq(
@@ -44,12 +61,25 @@ def calculate_eoq(
 
 
 def continuous_review_policy(
-    inventory_level: float,
+    inventory_position: float,
     reorder_point: float,
     order_quantity: float
 ) -> Tuple[bool, float]:
-    """Implement (s, Q) continuous review policy."""
-    pass
+    """Implement (r, Q) continuous review policy.
+
+    Args:
+        inventory_position: Current inventory position (on-hand + on-order - backorders).
+        reorder_point: Reorder point r.
+        order_quantity: Fixed order quantity Q.
+
+    Returns:
+        Tuple of (order_placed, quantity):
+        - If inventory_position <= reorder_point: (True, order_quantity)
+        - Otherwise: (False, 0.0)
+    """
+    if inventory_position <= reorder_point:
+        return (True, order_quantity)
+    return (False, 0.0)
 
 
 def periodic_review_policy(
