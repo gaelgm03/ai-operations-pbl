@@ -77,6 +77,22 @@ This explicitly separates:
 - Uncertainty modeling
 - Inventory decision-making
 
+### 4.3 Uncertainty Estimation (σ)
+
+Demand volatility (σ) is estimated from **forecast residuals**—the difference between actual demand and forecasted demand. This estimation is performed **per product category** (or per SKU if granular data is available), capturing item-level demand variability.
+
+For the baseline analysis, σ is assumed **stationary** over the simulation horizon. However, sensitivity analysis may be conducted using:
+- **Rolling windows** of varying lengths (e.g., W ∈ {10, 20, 40 periods}) to assess how estimation window size affects policy performance
+- **Volatility scaling** to simulate low, baseline, and high uncertainty regimes
+
+This approach isolates the effect of uncertainty estimation quality on inventory decisions.
+
+### 4.4 Lost Sales Assumption
+
+This project assumes **lost sales** rather than backorders. In retail settings, stockouts typically result in customer substitution or abandonment rather than deferred fulfillment. This reflects realistic consumer behavior where customers either purchase alternative products or leave without buying.
+
+Under a backordering assumption, unmet demand would carry forward, reducing immediate lost-sales penalties but increasing holding costs and service complexity. The qualitative insights of this project—that better uncertainty estimation improves policy performance—would likely persist under backordering, though the magnitude of improvements may differ.
+
 ---
 
 ## 5. Forecasting Layer (Intentionally Simple)
@@ -116,6 +132,12 @@ Only **interpretable, classical policies** are used.
      \]
 
 This approach constitutes a **data-driven heuristic optimization**, not reinforcement learning.
+
+### Service Level Assumption (z)
+
+The safety factor z (corresponding to the target service level) is treated as **fixed and exogenous**—it is not optimized within this study. The same z value is applied **uniformly across all policies** to ensure fair comparison.
+
+This design choice ensures that observed performance differences are attributable to **better estimation of demand volatility (σ)**, not to implicit service-level tuning. Any policy that achieves higher fill rates or lower costs under identical z reflects genuine improvement in uncertainty-aware inventory management.
 
 ---
 
@@ -215,7 +237,60 @@ The output of this project is a **comparative policy analysis**, not a predictio
 
 ---
 
-## 11. Dataset Usage
+## 11. Experimental Rigor and Robustness Checks
+
+This project emphasizes **robustness and consistency** over claims of optimality. The experimental design includes systematic variation of key parameters to stress-test policy performance.
+
+### Demand Volatility Scenarios
+Simulations are conducted under three volatility regimes:
+- **Low**: Reduced σ (e.g., 0.5× baseline) representing stable demand
+- **Baseline**: σ estimated directly from historical residuals
+- **High**: Elevated σ (e.g., 1.5× or 2× baseline) representing volatile demand
+
+This tests whether uncertainty-aware tuning provides consistent benefits across environments.
+
+### Optional Robustness Checks
+Depending on scope and time, additional checks may include:
+- **Mis-specified σ**: Evaluate policy performance when the estimated σ differs from the true simulation σ
+- **Non-Gaussian residuals**: Test sensitivity to distributional assumptions by sampling from heavier-tailed distributions
+- **Lead time sensitivity**: Vary lead time L to assess how policies respond to longer replenishment cycles
+
+These checks reinforce the credibility of conclusions and reveal boundary conditions where policy advantages may diminish.
+
+---
+
+## 12. How to Frame the Results
+
+When presenting findings, use language appropriate for Operations Management:
+
+- **Emphasize robustness**: "The tuned policy performs consistently across volatility regimes" rather than "The tuned policy is optimal."
+- **Highlight tradeoffs**: Discuss the balance between fill rate improvements and holding cost implications.
+- **Acknowledge uncertainty**: Use confidence intervals and note when differences are not statistically significant.
+- **Avoid superlatives**: Replace "best" with "preferred under these conditions" or "more robust."
+
+The key insight is that **uncertainty-aware tuning matters most in high-volatility regimes**, where static policies fail to adapt to demand variability. In low-volatility settings, simpler policies may perform comparably, which is itself a valuable finding.
+
+---
+
+## 13. Poster & Presentation Narrative
+
+Structure the final presentation around a four-step storyline:
+
+### 1. Problem
+Retailers face demand uncertainty that complicates inventory decisions. Static replenishment rules ignore this variability, leading to stockouts or excess inventory.
+
+### 2. Method
+We estimate demand volatility from historical forecast errors and incorporate it into classical (r, Q) inventory policies. Policies are evaluated via Monte Carlo simulation under controlled uncertainty scenarios.
+
+### 3. Results
+The tuned policy achieves [higher fill rates / lower stockouts / comparable holding costs] relative to static baselines, with benefits most pronounced under high demand volatility.
+
+### 4. Managerial Insight
+Better modeling of uncertainty—not algorithmic complexity—drives inventory performance. Organizations should invest in understanding demand variability before adopting sophisticated optimization tools.
+
+---
+
+## 14. Dataset Usage
 
 The dataset is used **only for calibration**, not direct evaluation.
 
@@ -228,7 +303,7 @@ All policy comparisons are performed on **simulated demand paths**, not historic
 
 ---
 
-## 12. Project Structure
+## 15. Project Structure
 
 ```
 ├── data/                   # Raw and processed datasets
@@ -248,7 +323,7 @@ All policy comparisons are performed on **simulated demand paths**, not historic
 
 ---
 
-## 13. Expected Outputs
+## 16. Expected Outputs
 
 - Clear comparison of inventory policies under demand uncertainty
 - Quantified performance improvements from learning demand volatility
@@ -257,7 +332,7 @@ All policy comparisons are performed on **simulated demand paths**, not historic
 
 ---
 
-## 14. Guiding Principle
+## 17. Guiding Principle
 
 > **Better decisions under uncertainty do not require more complex algorithms — they require better modeling of uncertainty.**
 
