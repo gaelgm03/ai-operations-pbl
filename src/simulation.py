@@ -166,17 +166,171 @@ def run_simulation(
     pass
 
 
+def policy_adapter_historical_mean(
+    inventory_position: float,
+    params: Dict[str, float]
+) -> Tuple[bool, float]:
+    """Adapter for historical-mean policy using trailing demand average.
+
+    This adapter is used internally by run_monte_carlo_simulation when
+    simulating the historical-mean policy. The trailing mean is computed
+    externally and passed via params.
+
+    Args:
+        inventory_position: Current inventory position (unused for this policy).
+        params: Dict with key "trailing_mean" containing the trailing average demand.
+
+    Returns:
+        Tuple (True, order_qty) where order_qty equals the trailing mean.
+    """
+    trailing_mean = params.get("trailing_mean", 0.0)
+    return (True, trailing_mean)
+
+
+def _generate_stochastic_demand(
+    demand_forecast: np.ndarray,
+    error_samples: np.ndarray,
+    rng: np.random.Generator
+) -> np.ndarray:
+    """Generate a stochastic demand path via bootstrap sampling.
+
+    Samples forecast errors with replacement and adds them to the forecast.
+    Demand is floored at zero to avoid negative values.
+
+    Args:
+        demand_forecast: Array of forecast values (length T).
+        error_samples: Array of historical forecast errors for bootstrap sampling.
+        rng: NumPy random generator for reproducibility.
+
+    Returns:
+        Array of stochastic demand values (length T), each >= 0.
+    """
+    T = len(demand_forecast)
+    sampled_errors = rng.choice(error_samples, size=T, replace=True)
+    stochastic_demand = demand_forecast + sampled_errors
+    stochastic_demand = np.maximum(0.0, stochastic_demand)
+    return stochastic_demand
+
+
 def run_monte_carlo_simulation(
-    n_replications: int,
-    demand_distribution: object,
-    policy_func: Callable,
+    demand_forecast: np.ndarray,
+    error_samples: np.ndarray,
+    policy_decision_fn: Callable,
     policy_params: Dict[str, float],
-    simulation_length: int,
     initial_inventory: float,
-    lead_time: int
+    n_runs: int,
+    random_seed: Optional[int] = None
 ) -> List[pd.DataFrame]:
-    """Run Monte Carlo simulation with multiple replications."""
-    pass
+    """Run Monte Carlo simulation with multiple stochastic demand paths.
+
+    For each run:
+    1. Sample forecast errors independently for each period (bootstrap with replacement).
+    2. Construct stochastic demand path: D_t = max(0, forecast_t + ε_t).
+    3. Run a single simulation using run_single_simulation.
+    4. Store the resulting DataFrame.
+
+    Args:
+        demand_forecast: Array of forecast values per period (length T).
+        error_samples: Array of historical forecast errors for bootstrap sampling.
+        policy_decision_fn: Function(inventory_position, params) -> (place_order, qty).
+        policy_params: Parameters to pass to the policy function.
+        initial_inventory: Starting on-hand inventory.
+        n_runs: Number of Monte Carlo replications to run.
+        random_seed: Optional seed for reproducibility.
+
+    Returns:
+        List of DataFrames, one per run, each containing simulation history.
+    """
+    rng = np.random.default_rng(random_seed)
+    results: List[pd.DataFrame] = []
+
+    for run_idx in range(n_runs):
+        stochastic_demand = _generate_stochastic_demand(
+            demand_forecast, error_samples, rng
+        )
+
+        df_run = run_single_simulation(
+            demand_series=stochastic_demand,
+            forecast_series=demand_forecast,
+            policy_decision_fn=policy_decision_fn,
+            policy_params=policy_params,
+            initial_inventory=initial_inventory
+        )
+
+        df_run["run"] = run_idx
+        results.append(df_run)
+
+    return results
+
+
+def run_monte_carlo_simulation_historical_mean(
+    demand_forecast: np.ndarray,
+    error_samples: np.ndarray,
+    initial_inventory: float,
+    n_runs: int,
+    window: int = 5,
+    random_seed: Optional[int] = None
+) -> List[pd.DataFrame]:
+    """Run Monte Carlo simulation using historical-mean policy.
+
+    At each period, the order quantity equals the trailing mean of realized
+    demand over the last `window` periods. For periods with fewer than `window`
+    observations, uses all available realized demand.
+
+    For each run:
+    1. Sample forecast errors independently for each period (bootstrap with replacement).
+    2. Construct stochastic demand path: D_t = max(0, forecast_t + ε_t).
+    3. Simulate inventory dynamics with trailing-mean ordering.
+    4. Store the resulting DataFrame.
+
+    Args:
+        demand_forecast: Array of forecast values per period (length T).
+        error_samples: Array of historical forecast errors for bootstrap sampling.
+        initial_inventory: Starting on-hand inventory.
+        n_runs: Number of Monte Carlo replications to run.
+        window: Number of periods for trailing mean calculation (default 5).
+        random_seed: Optional seed for reproducibility.
+
+    Returns:
+        List of DataFrames, one per run, each containing simulation history.
+    """
+    rng = np.random.default_rng(random_seed)
+    results: List[pd.DataFrame] = []
+    T = len(demand_forecast)
+
+    for run_idx in range(n_runs):
+        stochastic_demand = _generate_stochastic_demand(
+            demand_forecast, error_samples, rng
+        )
+
+        state = initialize_simulation(initial_inventory, T)
+        realized_demands: List[float] = []
+
+        for t in range(T):
+            if len(realized_demands) == 0:
+                trailing_mean = 0.0
+            else:
+                lookback = realized_demands[-window:]
+                trailing_mean = float(np.mean(lookback))
+
+            policy_params = {"trailing_mean": trailing_mean}
+
+            state = simulate_single_period(
+                state,
+                demand=stochastic_demand[t],
+                forecast=demand_forecast[t],
+                policy_decision_fn=policy_adapter_historical_mean,
+                policy_params=policy_params
+            )
+
+            realized_demands.append(stochastic_demand[t])
+
+        df_run = pd.DataFrame(state["history"])
+        df_run.index.name = "period"
+        df_run["run"] = run_idx
+        results.append(df_run)
+
+    return results
 
 
 def aggregate_simulation_results(
