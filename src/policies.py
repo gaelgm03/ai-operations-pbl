@@ -107,3 +107,72 @@ def optimize_policy_parameters(
 ) -> Dict[str, float]:
     """Optimize policy parameters for given demand and costs."""
     pass
+
+
+def configure_static_rq(
+    mean_demand: float,
+    lead_time: int,
+    order_quantity: float,
+    z: float
+) -> Dict[str, float]:
+    """Configure static (r, Q) baseline policy (uncertainty-agnostic).
+
+    Args:
+        mean_demand: Average demand per period.
+        lead_time: Lead time in periods.
+        order_quantity: Fixed order quantity Q.
+        z: Safety factor (unused in static policy, stored for reference).
+
+    Returns:
+        Dict with reorder_point, order_quantity, z, and sigma=0.
+    """
+    reorder_point = mean_demand * lead_time
+    return {
+        "reorder_point": reorder_point,
+        "order_quantity": order_quantity,
+        "z": z,
+        "sigma": 0.0
+    }
+
+
+def historical_mean_policy(
+    trailing_mean_demand: float
+) -> Tuple[bool, float]:
+    """Historical-mean replenishment policy (decision rule only).
+
+    Args:
+        trailing_mean_demand: Trailing average demand.
+
+    Returns:
+        Tuple (True, order_quantity) where order_quantity equals trailing_mean_demand.
+    """
+    return (True, trailing_mean_demand)
+
+
+def configure_tuned_rq(
+    mean_demand: float,
+    demand_std: float,
+    lead_time: int,
+    order_quantity: float,
+    z: float
+) -> Dict[str, float]:
+    """Configure tuned (r, Q) policy using learned demand volatility.
+
+    Args:
+        mean_demand: Average demand per period.
+        demand_std: Standard deviation of demand per period.
+        lead_time: Lead time in periods.
+        order_quantity: Fixed order quantity Q.
+        z: Safety factor (z-score for desired service level).
+
+    Returns:
+        Dict with reorder_point, order_quantity, z, and sigma.
+    """
+    safety_stock = z * demand_std * np.sqrt(lead_time)
+    reorder_point = mean_demand * lead_time + safety_stock
+    return {
+        "reorder_point": reorder_point,
+        "order_quantity": order_quantity,
+        "z": z,
+        "sigma": demand_std
+    }
